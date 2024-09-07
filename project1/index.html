@@ -58,25 +58,26 @@
                 <div>
                     <h2 id="background">1. Background</h2>
                     <p>Sergei Mikhailovich Prokudin-Gorskii's photo collection consists of images where three separate
-                        exposures of a scene were captured on a glass plate using red, green, and blue filters. To
-                        produce high-quality colorized photos, a significant challenge is to properly align these three
-                        color channels. The objective of this project is to develop a method for accurately aligning the
-                        photos from the three channels to create a coherent, high-quality color image.
+                        exposures of a scene were captured on a glass plate using red, green, and blue filters (allowing
+                        only red, green, and blue light to pass through). To produce high-quality colorized photos, a
+                        key challenge is properly aligning these three color channels. The objective of this project is
+                        to develop a method for aligning the photos from these channels to create a high-quality color
+                        image.
                     </p>
 
                     <div class="row">
                         <div class="col">
                             <figure>
-                                <img src="./images/cathedral.jpg">
-                                <figcaption>Original photos, photot from top to bottom correspond to blue, green and red
-                                    channel.</figcaption>
+                                <img src="./images/cathedral.jpg" width="20%" , height="20%">
+                                <figcaption>The original photos, from top to bottom, correspond to the blue, green, and
+                                    red filtered channels (passing through blue, green, and red filters).</figcaption>
                             </figure>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col">
                             <figure>
-                                <img src="./images_colorized/cathedral_c_no_align.jpg">
+                                <img src="./images_colorized/cathedral_c_no_align.jpg" width="20%" , height="20%">
                                 <figcaption>Colorized photo with no alignment.</figcaption>
                             </figure>
                         </div>
@@ -101,16 +102,19 @@
                         <li><b>Align photos</b>: I used OpenCV's <code>warpAffine</code> function to shift the images by
                             the estimated
                             displacement.</li>
-                        <li><b>Map to color</b>:I used <code>numpy.dstack</code> to stack the three channel's pixel
+                        <li><b>Map to color</b>: One-to-one mapping from three color-filtered channel to RGB value. I
+                            used <code>numpy.dstack</code> to stack the three channel's pixel
                             value to colorize the photos.</li>
                     </ul>
 
-                    <p>To find the optimal photo alignment, the simplest method is to use a brute-force search within an
+                    <p>To find the optimal photo alignment, a simple approach is to use a brute-force search within an
                         alignment window (e.g., [-15, 15] pixels around the initial alignment value). The goal is to
-                        find the alignment that results in the minimum value from a defined cost function. In this
-                        project, I used the Euclidean distance between the two images as the cost function.</p>
+                        identify the alignment that minimizes a defined cost function. In this project, I used the
+                        Euclidean distance between the two images as the cost function, calculated as
+                        sqrt(sum(image1-image2)^2). For better performance, I utilized <code>numpy.linalg.norm</code>.
+                    </p>
 
-                    <p>Before computing the cost, two preprocessing steps are necessary:</p>
+                    <p>Before computing the cost, I adopted two pre-processing strategies:</p>
                     <ul>
                         <li><b>Photo binarization</b>: I experimented with several
                             methods and found that converting the images to black and
@@ -118,16 +122,32 @@
                             helps to remove noise and simplifies the image by focusing on areas with strong
                             contrast. I used a threshold of 0.5 for one fixed channel (e.g., the green channel
                             photo) and computed the threshold for the other photo based on their mean pixel value
-                            ratio. While more sophisticated binarization methods, such as the Otsu method [<a
+                            ratio. While more sophisticated binarization methods, such as the [<a
                                 href="https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html"
-                                target="_blank">reference</a>],are available, this approach was easier to implement
-                            and sufficient for the current project.
-                            but this is easy to implement by myself and sufficient enough for current project.</li>
+                                target="_blank">Otsu method</a>], are available, this approach is simple and sufficient
+                            for the current project.
+                        </li>
+                        <br>
+                        <div class="row">
+                            <div class="col">
+                                <figure>
+                                    <img src="doc/compare.jpg" width="50%" , height="50%">
+                                    <figcaption>Top row: input images for alignment. Bottom row: images after
+                                        binarization. We can see that most of the finer details are removed, leaving
+                                        only the simple and significant features such as the boundary of the horizon and
+                                        the shapes of the
+                                        buildings.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                        <br>
                         <li><b>Remove photo margins</b>: The black and white borders of the photos can affect the cost
                             function and reduce alignment quality. To mitigate this, I computed the overlap region of
                             the two images using only 2/3 of the input image, excluding the margins. This also reduces
                             the number of compared pixels and speeds up the process.</li>
                     </ul>
+
+
 
                     <h3>2.2 Multi-scale Pyramid</h3>
                     <p>For high-resolution photos, brute-force search is time-consuming; therefore, I adopted the
@@ -147,7 +167,7 @@
                             scale of the pyramid, experiments indicated that overly downsampled photos can harm the
                             alignment result. Therefore, this method should prevent resizing photos below a certain
                             threshold. </li>
-                        <li><b>(New) Find alignment</b>: This new method is a modification of the original one, making
+                        <li><b>Find alignment</b>: This new method is a modification of the original one, making
                             it a recursive function. After reaching the original photo scale, it outputs the estimated
                             alignment as the final estimated alignment.</li>
 
@@ -232,6 +252,8 @@
 
 
                     <h2 id="result">Result</h2>
+                    <p>Below are the results from the sample data. The displacement vectors/alignment vectors are
+                        referenced to the top-left corner of the green channel photo.</p>
                     <h4>Low resolution images</h4>
                     <!-- low res image-->
                     <div class="row">
@@ -243,6 +265,7 @@
                                         the
                                         [Nikolaevskii] cathedral from southwest. Mozhaisk
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[2,5], b:[3,12]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -255,6 +278,7 @@
                                         monastery
                                         from Svetlitsa[Island, Saint Nil Stolbenskii Monastery, Lake Seliger]
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[2,-3], b:[2,3]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -268,6 +292,7 @@
                                         Tobolsk from the
                                         north, from the bell tower of the Church of the Transfiguration
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[3,-3], b:[3,7]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -285,6 +310,7 @@
                                         in
                                         the village of Ust-Boiarskoe, Olonets Province]
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[3,25], b:[-4,58]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -296,6 +322,7 @@
                                     <a href="https://www.loc.gov/item/2018680327/" target="_blank">Emir of Bukhara.
                                         Bukhara
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[24,48], b:[42,105]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -307,6 +334,7 @@
                                     <a href="https://www.loc.gov/item/2018679759/" target="_blank">Group of workers
                                         harvesting tea. Greek women. [Chakva]
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[17,60], b:[15,124]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -323,6 +351,7 @@
                                         Mother of God-Odigitria in the Church of the Assumption of the Virgin.
                                         [Smolensk]
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[17,41], b:[23,90]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -333,6 +362,7 @@
                                 <figcaption class="figure-caption text-center fs-6">
                                     <a href="https://www.loc.gov/item/2018679082/" target="_blank">Head study
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[8,54], b:[12,128]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -344,6 +374,7 @@
                                     <a href="https://www.loc.gov/item/2018680241/" target="_blank">Melon vendor.
                                         Samarkand
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[10,83], b:[13,179]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -358,6 +389,7 @@
                                     <a href="https://www.loc.gov/item/2018680634/" target="_blank">Church of the
                                         Resurrection in the Grove (from the other side). [Kostroma]
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[28,50], b:[37,108]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -368,6 +400,7 @@
                                 <figcaption class="figure-caption text-center fs-6">
                                     <a href="https://www.loc.gov/item/2018679062/" target="_blank">In Alupka. Crimea
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[-11,33], b:[-27,140]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -380,6 +413,7 @@
                                         Skuritskhali
                                         River. Study, Orto-Batum village]
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[29,77], b:[37,175]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -396,6 +430,7 @@
                                         A.P. Kalganov with son and granddaughter. The last two work in the shops
                                         of the Zlatoust plant
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[14,52], b:[12,111]</p>
                                 </figcaption>
                             </figure>
                         </div>
@@ -407,6 +442,7 @@
                                     <a href="https://www.loc.gov/item/2018679302/" target="_blank">Steam engine
                                         "Kompaund" with a Schmidt super-heater
                                     </a>
+                                    <p>Displacement vectors (dx,dy): r:[7,43], b:[32,87]</p>
                                 </figcaption>
                             </figure>
                         </div>
