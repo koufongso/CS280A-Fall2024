@@ -167,7 +167,7 @@ def alignImagesMultiScale(pyramid1,pyramid2):
     print(f'Displacement vector: ({best_dx,best_dy})')
     return cv.warpAffine(pyramid1[0], np.array([[1,0,best_dx],[0,1,best_dy]]).astype(np.float32), (w,h))
 
-
+########################################## Bonus/ improvment#############################################
 def colorMapping(img):
     '''
     map the red, green, blue filter (passing) image (input as BGR order) to the BGR color
@@ -179,77 +179,71 @@ def colorMapping(img):
     img_ = img_.transpose().reshape(h,w,3)      # convert back to original shape
     return img_
 
-def findImageBoarder(img, threshold = 0.9, offset = 2):
+def findImageBoarder(img, threshold1 = 10000, threshold2 = 25):
     '''
-    find the input image board and return the index of the boarder by compare the std of the rows/cols of the image and check if the ratio pass certain threshold
+    find the input image board and return the index of the boarder by filter vecotr (colmuns/rows) L2 cost and std with given threshold
     '''
-    grey_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY).astype(np.uint8)
-    grey_img = cv.GaussianBlur(grey_img, (5, 5), 0) # remove noise 
+    grey_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    grey_img = cv.GaussianBlur(grey_img, (7, 7), 0) # remove noise 
     #edges = cv.Canny(grey_img,50,50) # directly using grey scale image seems has better performance finding boarder
     
-    img_ = grey_img
-    h,w = img_.shape
-    
-    # return variables
-    top = 0
-    bot = h
-    left = 0
-    right = w
+    h,w = grey_img.shape
 
-    # starting position
-    x1 = int(w/2)   # left 
-    x2 = x1+1       # right
-    y1 = int(h/2)   # top 
-    y2 = y1+1       # bot
+    # searching window: left [0,x0] right [x1,end] top [0,y0] bot [y1,end]
+    x0 = int(w/6)
+    x1 = w-x0
+    y0 = int(h/6)
+    y1 = h-y0
 
-    # left 
-    line = img_[int(h/6):int(5*h/6),max(0,x1-offset):min(w,x1+offset+1)]
-    var_prev = np.std(line)
-    while(x1>0):
-        x1-=1
-        line = img_[int(h/6):int(5*h/6),max(0,x1-offset):min(w,x1+offset+1)]
-        var = np.std(line)
-        if(var/var_prev<threshold and np.mean(line)<120):
-            left = x1
+    # search left
+    j = x0
+    col_prev = grey_img[:,j]
+    j-=1
+    while(j>0):
+        col = grey_img[:,j]
+        diff = LA.norm(col-col_prev)
+        if(diff<threshold1 and np.std(col)<threshold2):
             break
-        var_prev = var
-        
-    # right
-    line = img_[int(h/6):int(5*h/6),max(0,x2-offset):min(w,x2+offset+1)]
-    var_prev = np.std(line)
-    while(x2<w):
-        x2+=1
-        line = img_[int(h/6):int(5*h/6),max(0,x2-offset):min(w,x2+offset+1)]
-        var = np.std(line)
-        if(var/var_prev<threshold and np.mean(line)<120):
-            right = x2
+        col_prev = col
+        j-=1
+    left = j
+    # search right
+    j = x1
+    col_prev = grey_img[:,j]
+    j-=1
+    while(j<w-1):
+        col = grey_img[:,j]
+        diff = LA.norm(col-col_prev)
+        if(diff<threshold1 and np.std(col)<threshold2):
             break
-        var_prev = var
+        col_prev = col
+        j+=1
+    right = j
+    # search top
+    i = y0
+    row_prev = grey_img[i,:]
+    i-=1
+    while(i>0):
+        row = grey_img[i,:]
+        diff = LA.norm(row-row_prev)
+        if(diff<threshold1 and np.std(row)<threshold2):
+            break
+        row_prev = row
+        i-=1
+    top = i
+    # search bot
+    i = y1
+    row_prev = grey_img[i,:]
+    i+=1
+    while(i<h-1):
+        row = grey_img[i,:]
+        diff = LA.norm(row-row_prev)
+        if(diff<threshold1 and np.std(row)<threshold2):
+            break
+        row_prev = row
+        i+=1
+    bot = i
 
-    # top
-    line = img_[max(0,y1-offset):min(h,y1+offset+1),int(w/6):int(5*w/6)]
-    var_prev =np.std(line)
-    while(y1>0):
-        y1-=1
-        line = img_[max(0,y1-offset):min(h,y1+offset+1),int(w/6):int(5*w/6)]
-        var = np.std(line)
-        if(var/var_prev<threshold and np.mean(line)<120):
-            top = y1
-            break
-        var_prev = var
-             
-    # bot
-    line = img_[max(0,y2-offset):min(h,y2+offset+1),int(w/6):int(5*w/6)]
-    var_prev = np.std(line)
-    while(y2<h):
-        y2+=1
-        line = img_[max(0,y2-offset):min(h,y2+offset+1),int(w/6):int(5*w/6)]
-        var = np.std(line)
-        if(var/var_prev<threshold and np.mean(line)<120):
-            bot = y2
-            break
-        var_prev = var
-        
     return left, right, top, bot
 
 
@@ -335,43 +329,34 @@ def test_multi_scale():
 
 def test_enhanced():
     filepath_ms=[]
-    filepath_ms.append("./images/cathedral.jpg")
-    filepath_ms.append("./images/monastery.jpg")
-    filepath_ms.append("./images/tobolsk.jpg")
-    filepath_ms.append("./images/lady.tif")
-    filepath_ms.append("./images/train.tif")
-    filepath_ms.append("./images/church.tif")
-    filepath_ms.append("./images/emir.tif")
-    filepath_ms.append("./images/harvesters.tif")
-    filepath_ms.append("./images/icon.tif")
-    filepath_ms.append("./images/melons.tif")
-    filepath_ms.append("./images/onion_church.tif")
-    filepath_ms.append("./images/sculpture.tif")
-    filepath_ms.append("./images/self_portrait.tif")
-    filepath_ms.append("./images/three_generations.tif")
+    # use colorized images for fast debugging
+    filepath_ms.append("./images_colorized/cathedral_c.jpg")
+    filepath_ms.append("./images_colorized/monastery_c.jpg")
+    filepath_ms.append("./images_colorized/tobolsk_c.jpg")
+    filepath_ms.append("./images_colorized/lady_c.jpg")
+    filepath_ms.append("./images_colorized/train_c.jpg")
+    filepath_ms.append("./images_colorized/church_c.jpg")
+    filepath_ms.append("./images_colorized/emir_c.jpg")
+    filepath_ms.append("./images_colorized/harvesters_c.jpg")
+    filepath_ms.append("./images_colorized/icon_c.jpg")
+    filepath_ms.append("./images_colorized/melons_c.jpg")
+    filepath_ms.append("./images_colorized/onion_church_c.jpg")
+    filepath_ms.append("./images_colorized/sculpture_c.jpg")
+    filepath_ms.append("./images_colorized/self_portrait_c.jpg")
+    filepath_ms.append("./images_colorized/three_generations_c.jpg")
     for filepath in filepath_ms:
         # single scale
         t0 = time.time()
         filename = filepath.split('/')[-1].split('.')[0]
         print(filename)
         # load image
-        image = cv.imread(filepath, cv.IMREAD_GRAYSCALE)
+        image = cv.imread(filepath)
         if(image is None):
             print(f"Cannot open file: {filepath}")
             exit(-1)
-        # crop image
-        b,g,r = cropImageBGR(image)
 
-        # create pyramids     
-        b_pyd = generateImagePyramids(b,4)
-        g_pyd = generateImagePyramids(g,4)
-        r_pyd = generateImagePyramids(r,4)
-        # align image, multi scale
-        ag = alignImagesMultiScale(g_pyd,b_pyd)
-        ar = alignImagesMultiScale(r_pyd,b_pyd)
-
-        combine = np.dstack((b,ag,ar))
-        combine = cropImageBorders(combine)
+        # combine = np.dstack((b,ag,ar))
+        combine = cropImageBorders(image)
         combine = colorMapping(combine)
 
         cv.imwrite(f"./images_enhanced/{filename}_e.jpg",combine)
@@ -414,18 +399,16 @@ def main(fin, fout):
 
 if __name__ == "__main__":
     if( len(sys.argv) > 2):
-        # run main function
+        # run main function, need to provide input output path
         main(sys.argv[1],sys.argv[2])
     else:
         # run the test functions
+
         # please modify the input filepath list and the save path (cv.imwrite) in these test functions
-        print("No input arguments, run testing functions! Might take 15 min to run all 3 tests.")
-        print("-"*20)
-        print("Test single scale")
+        print("No input arguments, uncomment the test function to run test, make sure the file paths within the functions are correct.")
+       
         #test_single_scale()
-        print("-"*20)
-        #print("Test multi scale")
+       
         #test_multi_scale()
-        print("-"*20)
-        print("Test enhanced")
-        test_enhanced()
+        
+        #test_enhanced()
