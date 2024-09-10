@@ -18,7 +18,7 @@ For the core homework:
 
 For the bounus part (photo improment/enhancement)
 8. colorMapping
-9. findImageBoarder
+9. findImageBorder
 10. cropImageBorders
 
 '''
@@ -179,13 +179,13 @@ def colorMapping(img):
     img_ = img_.transpose().reshape(h,w,3)      # convert back to original shape
     return img_
 
-def findImageBoarder(img, threshold1 = 10000, threshold2 = 25):
+def findImageBorder(img, threshold1 = 10000, threshold2 = 25):
     '''
-    find the input image board and return the index of the boarder by filter vecotr (colmuns/rows) L2 cost and std with given threshold
+    find the input image board and return the index of the border by filter vecotr (colmuns/rows) L2 cost and std with given threshold
     '''
     grey_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     grey_img = cv.GaussianBlur(grey_img, (7, 7), 0) # remove noise 
-    #edges = cv.Canny(grey_img,50,50) # directly using grey scale image seems has better performance finding boarder
+    #edges = cv.Canny(grey_img,50,50) # directly using grey scale image seems has better performance finding border
     
     h,w = grey_img.shape
 
@@ -249,9 +249,9 @@ def findImageBoarder(img, threshold1 = 10000, threshold2 = 25):
 
 def cropImageBorders(img):
     '''
-    find the image boarder and return the cropped image
+    find the image border and return the cropped image
     '''
-    x1, x2, y1, y2 = findImageBoarder(img)
+    x1, x2, y1, y2 = findImageBorder(img)
     print(x1,x2,y1,y2)
     return img[y1:y2,x1:x2]
 
