@@ -31,8 +31,9 @@
                                 <li class="nav-item"><a class="nav-link" href="#project1">Background</a>
                                 </li>
                                 <li class="nav-item"><a class="nav-link" href="#implementation">Implementation</a></li>
-                                <li class="nav-item"><a class="nav-link" href="#result">Result</a></li>
                                 <li class="nav-item"><a class="nav-link" href="#improvement">Improvement</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#result">Result</a>
+                                </li>
                             </ul>
                         </li>
                         <li class="nav-item">
@@ -52,7 +53,9 @@
             </div>
             <div class="col-9 content">
                 <div id="project1">
-                    <h1>Project 1: Colorizing the Prokudin-Gorskii photo collection</h1>
+                    <h1>Project 1: Colorizing the Prokudin-Gorskii photo collection (<a
+                        href="https://github.com/koufongso/CS280A-Fall2024/tree/main/project1"
+                        target="_blank">GitHub repo</a>)</h1>
                 </div>
                 <br>
                 <div>
@@ -176,7 +179,8 @@
                     <h3>2.3 Pseudocode</h3>
                     <p>Below is the pseudocode for finding image alignment, including both single-scale and multi-scale
                         approaches, as well as the image pyramid method. You can find the python implementation <a
-                            href="https://github.com/koufongso/CS280A-Fall2024/tree/main/project1" target="_blank">here</a>.</p>
+                            href="https://github.com/koufongso/CS280A-Fall2024/tree/main/project1"
+                            target="_blank">here</a>.</p>
 
                     <pre>
                         <code>
@@ -250,14 +254,90 @@
                         </code>
                     </pre>
 
+                    <h2 id="improvement">Improvement</h2>
+                    <p> To enhance the image quality, two improvement has been made.</p>
+
+                    <h4>Color mapping</h4>
+                    <p>Up until now, I have directly mapped the red, green, and blue filtered photos to their
+                        corresponding
+                        RGB
+                        channels. However, this might not result in the 'correct' mapping that gives a 'modern' color
+                        photo
+                        appearance. To make the coloring closer to modern photos, I assume there is a linear
+                        transformation
+                        that
+                        maps the filtered photo values to RGB values, and this transformation remains consistent across
+                        all
+                        photo collections, as long as the hardware does not change.</p>
+
+                    <p>The "correct" RGB color can be express as a 3x1 column vector <b>b</b> and the original color is
+                        a
+                        3x1
+                        column
+                        vector <b>x</b>, and our goal is to find such a 3x3 transformation matrix <b>A</b> such that
+                        <b>Ax=b</b>.
+                    </p>
+                    <p>To solve the linear system, we need at least three pairs of <b>x</b> and <b>b</b>. The original
+                        system can be expanded as <b>A[x1, x2, ..., xn] = [b1, b2, ..., bn], where n ≥ 3</b>. To obtain
+                        the
+                        color pairs, I used color-picking tools to select colors from representative objects (e.g., the
+                        color of the sky, trees, clothes) and matched them with colors from similar objects in modern
+                        photos. Since pixel-level color picking and pairing may not be entirely accurate and can easily
+                        introduce bias and outliers, it would be better to have a larger set of color pairs. For this
+                        project, due to time constraints, I used six color pairs to compute the transformation matrix.
+                        Although the result is not perfect, it does help reduce some of the bluish tint in the photos.
+                    </p>
+
+                    <br>
+
+                    <h4>Auto-crop image boarder</h4>
+                    <p>As you can see in the results section, there are black, white, and other colored margins around
+                        the
+                        photo borders. To automatically detect and remove them, I tested several strategies, and I will
+                        present the one that I believe is (currently) the most stable. The proposed pipeline is as
+                        follows:
+                    </p>
+
+                    <div class="row">
+                        <div class="col">
+                            <figure class="row">
+                                <img src="./doc/pipeline_crop_photo.png">
+                            </figure>
+                        </div>
+                    </div>
+
+                    <p>The overall idea is to compute a cost function based on the differences between pixel vectors in
+                        rows
+                        or columns. If the cost satisfies certain conditions, the current row or column is considered
+                        part
+                        of the border. The cost function used here is simply the L2 norm, and the stopping criteria are
+                        based on predefined thresholds for the L2 norm and the standard deviation of pixel values in the
+                        current row or column. The search starts at the center and moves toward the four borders. To
+                        speed
+                        up the process, I assume the border is near the edge of the photo, so the search begins close to
+                        the
+                        edge and this is a reasonable assumption. A row or column is only considered part of the border
+                        if
+                        its
+                        cost is below the threshold (indicating neighboring rows/columns have similar colors) and its
+                        standard deviation is below the threshold (indicating uniform color).
+                    </p>
+
+                    <p>There are a few assumptions to consider: the border should have some thickness (i.e., 'width' ≥ 2
+                        pixels) and a uniform color (i.e., small standard deviation in pixel values along the same
+                        border).
+                        Furthermore, I assume there is no uniform color across the entire photo (e.g., no green screen
+                        background). These assumptions ensure that only the border satisfies these conditions.</p>
 
                     <h2 id="result">Result</h2>
                     <p>Below are the results from the sample data. The displacement vectors/alignment vectors are
-                        referenced to the top-left corner of the green channel photo.</p>
+                        referenced to the top-left corner of the green channel photo. One the left side are the aligned
+                        and colorized photos and on the right side are the improved (color remapped and after border
+                        cropping) photos.</p>
                     <h4>Low resolution images</h4>
                     <!-- low res image-->
                     <div class="row">
-                        <div class="col">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/cathedral_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -269,8 +349,24 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/cathedral_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018679961/" target="_blank">General view of
+                                        the
+                                        [Nikolaevskii] cathedral from southwest. Mozhaisk
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[2,5], b:[3,12]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/monastery_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -282,10 +378,38 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/monastery_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018681345/" target="_blank">View of the
+                                        monastery
+                                        from Svetlitsa[Island, Saint Nil Stolbenskii Monastery, Lake Seliger]
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[2,-3], b:[2,3]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/tobolsk_c.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018681091/" target="_blank">View of the city
+                                        of
+                                        Tobolsk from the
+                                        north, from the bell tower of the Church of the Transfiguration
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[3,-3], b:[3,7]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/tobolsk_c_e.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
                                     <a href="https://www.loc.gov/item/2018681091/" target="_blank">View of the city
                                         of
@@ -302,7 +426,7 @@
                     <!-- high res image-->
                     <h4>High resolution images</h4>
                     <div class="row">
-                        <div class="col">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/church_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -314,8 +438,22 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/church_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018678818/" target="_blank">[Epiphany church
+                                        in
+                                        the village of Ust-Boiarskoe, Olonets Province]
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[3,25], b:[-4,58]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/emir_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -326,10 +464,34 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/emir_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018680327/" target="_blank">Emir of Bukhara.
+                                        Bukhara
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[24,48], b:[42,105]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/harvesters_c.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018679759/" target="_blank">Group of workers
+                                        harvesting tea. Greek women. [Chakva]
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[17,60], b:[15,124]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/harvesters_c_e.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
                                     <a href="https://www.loc.gov/item/2018679759/" target="_blank">Group of workers
                                         harvesting tea. Greek women. [Chakva]
@@ -342,7 +504,7 @@
                     <br>
 
                     <div class="row">
-                        <div class="col">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/icon_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -355,8 +517,23 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/icon_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018680022/" target="_blank">Miraculous icon
+                                        of
+                                        Mother of God-Odigitria in the Church of the Assumption of the Virgin.
+                                        [Smolensk]
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[17,41], b:[23,90]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/lady_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -366,10 +543,33 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/lady_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018679082/" target="_blank">Head study
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[8,54], b:[12,128]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/melons_c.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018680241/" target="_blank">Melon vendor.
+                                        Samarkand
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[10,83], b:[13,179]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/melons_c_e.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
                                     <a href="https://www.loc.gov/item/2018680241/" target="_blank">Melon vendor.
                                         Samarkand
@@ -382,7 +582,7 @@
 
                     <br>
                     <div class="row">
-                        <div class="col">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/onion_church_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -393,8 +593,21 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/onion_church_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018680634/" target="_blank">Church of the
+                                        Resurrection in the Grove (from the other side). [Kostroma]
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[28,50], b:[37,108]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/sculpture_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -404,10 +617,34 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/sculpture_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018679062/" target="_blank">In Alupka. Crimea
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[-11,33], b:[-27,140]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/self_portrait_c.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018679724/" target="_blank">[On the
+                                        Skuritskhali
+                                        River. Study, Orto-Batum village]
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[29,77], b:[37,175]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/self_portrait_c_e.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
                                     <a href="https://www.loc.gov/item/2018679724/" target="_blank">[On the
                                         Skuritskhali
@@ -421,7 +658,7 @@
 
                     <br>
                     <div class="row">
-                        <div class="col">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/three_generations_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -434,8 +671,23 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/three_generations_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018679520/" target="_blank">Three
+                                        generations.
+                                        A.P. Kalganov with son and granddaughter. The last two work in the shops
+                                        of the Zlatoust plant
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[14,52], b:[12,111]</p>
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                    <!---->
+                    <div class="row">
+                        <div class="col-6">
                             <figure class="figure">
                                 <img src="./images_colorized/train_c.jpg" class="img-fluid" alt="...">
                                 <figcaption class="figure-caption text-center fs-6">
@@ -446,13 +698,25 @@
                                 </figcaption>
                             </figure>
                         </div>
-                        <!---->
-                        <div class="col">
+                        <div class="col-6">
+                            <figure class="figure">
+                                <img src="./images_enhanced/train_c_e.jpg" class="img-fluid" alt="...">
+                                <figcaption class="figure-caption text-center fs-6">
+                                    <a href="https://www.loc.gov/item/2018679302/" target="_blank">Steam engine
+                                        "Kompaund" with a Schmidt super-heater
+                                    </a>
+                                    <p>Displacement vectors (dx,dy): r:[7,43], b:[32,87]</p>
+                                </figcaption>
+                            </figure>
                         </div>
                     </div>
                 </div>
             </div>
+
+
+
         </div>
+    </div>
     </div>
     <br>
     <nav class="navbar"
@@ -461,6 +725,7 @@
             <span class="navbar-brand mb-0 fs-4 fw-bold"> </span>
         </div>
     </nav>
+
 
 
 </body>
