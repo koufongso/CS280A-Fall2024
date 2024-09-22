@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <title>CS280A Fall2024 Project 1</title>
+</head>
+
+<body>
+    <nav class="navbar"
+        style="--bs-navbar-brand-hover-color: white; --bs-navbar-brand-color: white; background-color: #003262;">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 fs-4 fw-bold">UC Berkeley CS280A: Intro to Computer Vision and Computational
+                Photography
+                (Fall2024)</span>
+        </div>
+    </nav>
+
+    <br>
+    <div class="container-fluid content">
+        <div class="row">
+            <div class="col-2">
+                <div class="sticky-top">
+                    <ul class="nav flex-column fs-5">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project1/index.html">Project 1</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Project 2</a>
+                            <ul class="nav flex-column fs-6" style="margin-left: 30px;">
+                                <li class="nav-item"><a class="nav-link" href="#overview">Overview</a>
+                                </li>
+                                <li class="nav-item"><a class="nav-link" href="#part1">Fun with Filters</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#2.1">Image sharpening</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#2.2">Hybrid image with frequencies</a>
+                                <li class="nav-item"><a class="nav-link" href="#2.3">Hybrid image with Guassian and
+                                        Laplacian
+                                        Stacks</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Project 3</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Project 4</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Project 5</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-9 content">
+                <div id="project2">
+                    <h1>Project 2: Fun with Filters and Frequencies (<a
+                            href="https://github.com/koufongso/CS280A-Fall2024/tree/main/project2"
+                            target="_blank">GitHub repo</a>)</h1>
+                </div>
+                <br>
+
+                <div id="body">
+                    <h2 id="overview">Overview</h2>
+                    <p> This project consists of two parts. In the first part, we will implement and test various
+                        filters, such as Gaussian (blur) filtering, gradient filtering, and sharpening filtering. In the
+                        second part, we will explore and apply frequency domain techniques for image blending and
+                        fusion.
+                    </p>
+
+                    <!--Part 1-->
+                    <h2 id="part1">Part 1: Fun with Filters</h2>
+
+                    <h3 id="1.1">1.1: Finite Difference Operator</h3>
+                    <p>In this section, the "finite difference" filters (see figure below) will be used as the edge
+                        detector to an image and
+                        produce images represents "dI/dx" and "dI/dy" ("I" here represents the image array), after that
+                        the magnitude of the edge gradient be
+                        computed as |gradient(I)| = sqrt((dI/dx)^2+(dI/dy)^2). The gradient image will then be binarized
+                        using a predifiend threshold, and output the "edge" of the orinal image. </p>
+
+                    <div class=row>
+                        <div class=col-3>
+                            <img src="./doc/section1_1/diff_op.png" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+
+                    <div class=row>
+                        <div class="col">
+                            <img src="./images/cameraman.png" class="img-fluid" alt="...">
+                            <p class="text-center">Original Image</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_1/dIdx.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">dI/dx</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_1/dIdy.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">dI/dy</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_1/grad.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">|gradietn(I)|</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_1/bw.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Binarized edge (threshold=50)</p>
+                        </div>
+                    </div>
+                    <p>Noted that
+                        dI/dx, dI/dy image pixel values are rescaled/normlaized back to [0,255] range for visulization
+                        purpose, the image processing process are done using the orignal pixel values.</p>
+
+                    <h3 id="1.2">1.2: Derivative of Gaussian (DoG) Filter</h3>
+                    <p> In the precious section result, we can see that there is some noise in the backgournd of the
+                        binarzed edge image (noticed those tiny white dots, especially on the grass). Therefore, one way
+                        is to apply the Gaussian filter G to blur/smooth the image before the operation. Noticed that
+                        the noise are mostly removed in the final binarized edge image, also, as a side effect, the edge
+                        is getting smoother and wider.
+                    </p>
+
+                    <div class=row>
+                        <div class="col">
+                            <img src="./doc/section1_2/blur.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Blurred Image</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/dIdx_br.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">dI/dx_blur</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/dIdy_br.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">dI/dy_blur</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/grad_br.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">|gradietn(I_blur)|</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/bw_br.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Binarized edge (threshold=20)</p>
+                        </div>
+                    </div>
+
+                    <p>The mathmatic expression of the dI/dx_blure is (dI/dx)_blur = Dx*(G*I), "*" denoted the
+                        covolution
+                        operaotr and due to the <a href="https://en.wikipedia.org/wiki/Convolution"
+                            target="_blank">associativity of convolution</a>, (dI/dx)_blur = (Dx*G)*I, we can create a
+                        new filter Derivative of Gaussian (DoG) filter, which is defined as <b>Dx*G</b>. Applying this
+                        filter
+                        to the orignal image will produce
+                        the same reuslt as apply Gaussian filter first then the edge detection process, as figure shown
+                        below.</p>
+
+                    <div class=row>
+                        <div class="col">
+                            <img src="./images/cameraman.png" class="img-fluid" alt="...">
+                            <p class="text-center">Original image</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/dIdx_dog.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">dI/dx_blur (DoG)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/dIdy_dog.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">dI/dy_blur (DoG)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/grad_dog.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">|gradietn(I_blur)| (DoG)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section1_2/bw_dog.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Binarized edge (threshold=20, DoG)</p>
+                        </div>
+                    </div>
+
+                    <br>
+                    <!--Part 2-->
+                    <h2 id="part2">Part 2: Fun with Frequencies</h2>
+                    <h3 id="2.1">2.1: Image "Sharpening"</h3>
+                    <p>The Gaussian filter is a low-pass filter meaning that it only retains low frequencies of the
+                        image. Therefore, we can obtain the high frequencies of the image by subtract the blurred image
+                        from the original image. An image often looks "sharper" when it has a high frequencies
+                        components. So we can amplified the high frequcies and add them back to the original image to
+                        sharpen the image. The mathmatic expression is: I_shapr = I+a(I-(G*I)) = I+aI-aI*G = (1+a)I-aI*G
+                        = I*((1+a)*e-a*G). We can create a new "sharpening" filter (or called unsharpen mask) whcih is
+                        defined as <b>(1+a)*e-a*G</b> where "a" is the gain represnet that how mauch we want to amplify
+                        the high frequencies and "e" is the "unit impulse" (i.e. only has value 1 at the center of the
+                        image and 0 elsewhere). </p>
+
+
+                    <div class=row>
+                        <div class="col">
+                            <img src="./images/taj.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Original image</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_1/taj_s.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Sharpen image (gain=5)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./images/cameraman.png" class="img-fluid" alt="...">
+                            <p class="text-center">Original image</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_1/cameraman_s.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Sharpen image (gain=5)</p>
+                        </div>
+                    </div>
+
+                    <p> For evaluation, I have picked a sharp image, blure it and then resharpen it again, see figure
+                        shown below. As we can see that although the rearpening filter can make the image less blurry
+                        but we can still feel that it is not as sharp as before. This is because the iniformation that
+                        was removed by the Gaussian filter is lost and wihtout that we without that we cannot recovered
+                        the image to the origanl one.</p>
+                    <div class="row">
+                        <div class="col">
+                            <img src="./images/sharp_image.png" class="img-fluid" alt="...">
+                            <p class="text-center">Original image</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_1/sharp_image_blur.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Blurred image </p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_1/sharp_image_blur_sharpe.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Resharpen image</p>
+                        </div>
+                    </div>
+
+                    <br>
+                    <!---->
+                    <h3 id="2.2">2.2: Hybrid Images</h3>
+                    <p>The high frequecy tends to dominate human perception when human is close to the image but at a
+                        distance the low frequence part dominates. Based on this idea, we can blende two image into one
+                        so people can see the one image from distance and the other one when look at it from a close
+                        distance. We can use Gaussina filter to obtiain the low frequency component of an image and use
+                        impulse fitler minus the Gaussian filter (e-G) to obtian the high frequency part (since
+                        I_high_freq = I-(G*I) = I*(e-G)). </p>
+
+
+                    <div class="row">
+                        <div class="col-3">
+                            <img src="./images/DerekPicture.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Low frequency input image</p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./images/nutmeg.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">High frequecy input image </p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_2/hybrid1.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Blended image (you should see the high frequency input image)</p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_2/hybrid1.jpg" class="img-fluid" alt="..." width="20%"
+                                height="20%">
+                            <p class="text-center">Blended image (you shold see the low frequency input image)</p>
+                        </div>
+                    </div>
+
+                    <h4>FFT Analysis</h4>
+                    <p>Below are the FFT analysis of the blending process.</p>
+                    <div class="row">
+                        <div class="col-2">
+                            <img src="./images/DerekPicture.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Input image (that we want to retains its low frequency)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/low-pass input.jpg" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-2">
+                            <img src="./doc/section2_2/low-pass filtered.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Filtered image (low-pass)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/low-pass filtered fft.jpg" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+                    <p>We can sse that after low-pass filering, most of the high frequencies (far away from the center
+                        area) got supressed.</p>
+                    <br>
+                    <br>
+                    <div class="row">
+                        <div class="col-2">
+                            <img src="./images/nutmeg.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Input image (that we want to retains its high frequency)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/high-pass input.jpg" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-2">
+                            <img src="./doc/section2_2/high-pass filtered.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Filtered image (high-pass)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/high-pass filtered fft.jpg" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+                    <p>We can sse that after high-pass filering, most of the low frequencies (close to the center area)
+                        got supressed.</p>
+
+                    <p>Below are the blended image and its FFT.</p>
+                    <div class="row">
+                        <div class="col-2">
+                            <img src="./doc/section2_2/hybrid1.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Blended image</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/hybrid.jpg" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+
+                    <h4> Blending Combination (Bouns)</h4>
+                    <p>Here we used only grayscale images to blender but we can also have different combination blending
+                        (i.e., grayscale+color, color+color). Personally speaking, use grayscale for low frequecy input
+                        image and color for high frequency input image has a better result. I think this is because in
+                        close range human can precept the color pretty well and the color ocan enhance the high
+                        frequency of the image. So if we use color input for the low frequency image, it will keep us
+                        pay more attention to the low frequency part and weaken the high frequency part.</p>
+                    <div class="row">
+                        <div class="col">
+                            <img src="./doc/section2_2/hybrid1.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">grayscale+grayscale</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/hybrid2.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">grayscale (low freq)+color (high freq)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/hybrid3.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">color (low freq)+ grayscale(high freq)</p>
+                        </div>
+                        <div class="col">
+                            <img src="./doc/section2_2/hybrid4.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">color+color</p>
+                        </div>
+                    </div>
+
+                    <h4> More Blending Result</h4>
+                    <div class="row">
+                        <div class="col-3">
+                            <img src="./images/DT.jpg" class="img-fluid" alt="...">
+                            <p class="text-center"><a
+                                    href="https://en.wikipedia.org/wiki/Donald_Trump#/media/File:Donald_Trump_official_portrait.jpg"
+                                    target="_blank">Low frequency input image</a></p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./images/JB.jpg" class="img-fluid" alt="...">
+                            <p class="text-center"><a
+                                    href="https://en.wikipedia.org/wiki/Joe_Biden#/media/File:Joe_Biden_presidential_portrait.jpg"
+                                    target="_blank">High frequecy input image</a> </p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_2/hybrid4_2.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Blended image (you should see the high frequency input image)</p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_2/hybrid4_2.jpg" class="img-fluid" alt="..." width="20%"
+                                height="20%">
+                            <p class="text-center">Blended image (you shold see the low frequency input image)</p>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-3">
+                            <img src="./images/face1.jpg" class="img-fluid" alt="...">
+                            <p class="text-center"><a
+                                    href="https://www.pexels.com/photo/collage-photo-of-woman-3812743/"
+                                    target="_blank">Low frequency input image</a></p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./images/face2.jpg" class="img-fluid" alt="...">
+                            <p class="text-center"><a
+                                    href="https://www.pexels.com/photo/collage-photo-of-woman-3812743/"
+                                    target="_blank">High frequecy input image</a> </p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_2/hybrid4_3.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Blended image (you should see the high frequency input image)</p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_2/hybrid4_3.jpg" class="img-fluid" alt="..." width="20%"
+                                height="20%">
+                            <p class="text-center">Blended image (you shold see the low frequency input image)</p>
+                        </div>
+                    </div>
+
+                    <h3 id="2.3">2.3: Gaussian and Laplacian Stacks</h3>
+
+                    <p><b>Gaussian stack</b> is the collection of Gaussian filtered image from its previous level,
+                        starting
+                        from the orignal image (no filtered).</p>
+
+                    <p>In <b>Laplacian stack</b>, image at level i is obtained by subtracting the corresponding Gaussina
+                        stack layer i+1 from Gaussina stack layer i. And to make it easier to reconstruct the orinal
+                        image (reconstruction), I save the lowest resolution layer of the Gaussian stack at the end of
+                        the Laplacian stack</p>
+
+                    <div>
+                        <img src="./doc/section2_3/stack.png">
+                        <p>Illustration of constructing Gaussian stack and Laplacian stack. Top row is the Gaussian
+                            stack and the bottom row is the Laplacian stack.
+                            Credit: CS180: Intro to
+                            Comp.
+                            Vision and Comp. Photo,
+                            Prof. Alexei Efros, UC Berkeley, Fall 2024 </p>
+                    </div>
+
+                    <h4>"Oraple"</h4>
+                    <p>Using the Gaussian and Laplcian stack, we can replicate the "Oraple" presented by Burt and
+                        Adelson in their <a href="https://persci.mit.edu/pub_pdfs/spline83.pdf"
+                            target="_blank">paper</a>.</p>
+
+                    <p>We have two image that wnat to blend: an apple and an orange.</p>
+                    <div class="row">
+                        <div class="col-3">
+                            <img src="./images/apple.jpeg" class="img-fluid" alt="...">
+                        </div>
+                        <div class="col-3">
+                            <img src="./images/orange.jpeg" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+                    <br>
+                    <p>We can construct the Gaussian stackan and the Laplacian stack.</p>
+                    <div class="row">
+                        <img src="./doc/section2_3/gaussian_apple.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Gaussian stack</p>
+                    </div>
+                    <div class="row">
+                        <img src="./doc/section2_3/laplacian_apple.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Laplacian stack</p>
+                    </div>
+
+
+                    <div class="row">
+                        <img src="./doc/section2_3/gaussian_orange.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Gaussian stack</p>
+                    </div>
+                    <div class="row">
+                        <img src="./doc/section2_3/laplacian_orange.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Laplacian stack</p>
+                    </div>
+                    <div class="row">
+                        <img src="./doc/section2_3/gaussian_mask.png" class="img-fluid" alt="...">
+                        <p class="text-center">Gaussian stack of mask</p>
+                    </div>
+
+
+                    <div class="row">
+                        <img src="./doc/section2_3/laplacian_blend_left.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Lapacian stack of apple (with mask)</p>
+                    </div>
+                    <div class="row">
+                        <img src="./doc/section2_3/laplacian_blend_right.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Laplacian stack of orange (with mask)</p>
+                    </div>
+                    <div class="row">
+                        <img src="./doc/section2_3/laplacian_blend.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Laplacian stack of the blended image</p>
+                    </div>
+
+                    <br>
+                    <p>Final result</p>
+                    <div class="row">
+                        <div class="col-3">
+                            <img src="./images/apple.jpeg" class="img-fluid" alt="...">
+                        </div>
+                        <div class="col-3">
+                            <img src="./images/orange.jpeg" class="img-fluid" alt="...">
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_3/Oraple.jpg" class="img-fluid" alt="...">
+                        </div>
+                    </div>
+                    <br>
+                    <br>
+                    <h4>"Apple man"</h4>
+                    <div class="row">
+                        <div class="col-3">
+                            <img src="./images/DerekPicture_blend.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Image 1</p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./images/apple.jpeg" class="img-fluid" alt="...">
+                            <p class="text-center">Image 2</p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_4/mask.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Mask</p>
+                        </div>
+                        <div class="col-3">
+                            <img src="./doc/section2_4/blend2.jpg" class="img-fluid" alt="...">
+                            <p class="text-center">Blended image</p>
+                        </div>
+                    </div>
+
+
+                    <div class="row">
+                        <img src="./doc/section2_4/laplacian_blend2_left.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Lapacian stack of image 1 (with mask)</p>
+                    </div>
+                    <div class="row">
+                        <img src="./doc/section2_4/laplacian_blend2_right.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Laplacian stack of image 2 (with mask)</p>
+                    </div>
+                    <div class="row">
+                        <img src="./doc/section2_4/laplacian_blend2.jpg" class="img-fluid" alt="...">
+                        <p class="text-center">Laplacian stack of the blended image</p>
+                    </div>
+
+
+
+
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <nav class="navbar"
+        style="--bs-navbar-brand-hover-color: white; --bs-navbar-brand-color: white; background-color: #003262;">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 fs-4 fw-bold"> </span>
+        </div>
+    </nav>
+
+
+
+</body>
+
+</html>
