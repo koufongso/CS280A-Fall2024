@@ -18,27 +18,25 @@ class Point2:
         self.y = y
         
 
-class Correspondance:
+class Correspondence:
     '''
-    correspondance data struct
+    correspondence data struct
     '''
     id = 0
     def __init__(self, obj1, obj2, name:str = None) -> None:
          # make sure store the ame type of object
-        if(type(obj1)!=type(obj2)):
-            raise TypeError("Objects in correspondance are not the same type!")
+        if not isinstance(obj1, type(obj2)):
+            raise TypeError("Objects in correspondence are not the same type!")
+        
         # manage propety
         self.type = type(obj1)
-        Correspondance.id+=1
-        self.id = Correspondance.id
-        if(name is not None):
-            self.name = name
-        else:
-            self.name = f'correspondance_{self.id}'
+        Correspondence.id+=1
+        self.id = Correspondence.id
+        self.name = name if name is not None else f'correspondence_{self.id}'
         
-        # store correspondance pair
+        # store correspondence pair
         self.obj1 = obj1
-        self.obj2 = obj2        
+        self.obj2 = obj2    
 
 class AnnotationTool:
     def __init__(self) -> None:
@@ -50,10 +48,10 @@ class AnnotationTool:
         self.pair={}
 
         # some GUI function "mutex"
-        self.inuse_removeCorrespondanceGUI = False
-        self.inuse_addCorrespondanceGUI = False
+        self.inuse_removeCorrespondenceGUI = False
+        self.inuse_addCorrespondenceGUI = False
 
-    # add/remove of images and correspondance 
+    # add/remove of images and correspondence 
     def setImage(self, image_path, idx:int):
         im = mpimg.imread(image_path)
         if idx == 1:         
@@ -75,47 +73,47 @@ class AnnotationTool:
         else:
             print("resetImage: image index must less than 2!")
 
-    def addCorrespondance(self,c:Correspondance):
+    def addCorrespondence(self,c:Correspondence):
         self.pair[c.id] = c
 
-    def removeCorrespondance(self,id:int):
+    def removeCorrespondence(self,id:int):
         if id in self.pair:
             self.pair.pop(id)
         else:
             print(f"id {id} does not exist.")
 
-    def resetCorrespondance(self):
+    def resetCorrespondence(self):
         self.pair.clear()
 
     def reset(self):
         self.resetImage(1)
         self.resetImage(2)
-        self.resetCorrespondance()
+        self.resetCorrespondence()
 
-    def saveCorrespondance(self,filename:str = None):
+    def saveCorrespondence(self,filename:str = None):
         if len(self.pair)==0:
             print("No data to save.")
             return
         
         if filename is None:
-            filename = "correspondance.pkl"
+            filename = "correspondence.pkl"
 
-        print(f"save correspondance pair to {filename}")
+        print(f"save correspondence pair to {filename}")
         with open(filename,'wb') as file:
             pickle.dump(self.pair, file)
-            print("Correspondance pair saved!")
+            print("Correspondence pair saved!")
             file.close()
 
-    def loadCorrespondance(self,filepath:str):
-        print(f"load correspondance pari from {filepath}")
+    def loadCorrespondence(self,filepath:str):
+        print(f"load correspondence pari from {filepath}")
         with open(filepath,'rb') as file:
             self.pair = pickle.load(file)
-            print("Correspondance pair loaded!")
+            print("Correspondence pair loaded!")
             file.close()
 
-        # need to update Correspondance id
+        # need to update Correspondence id
         keys = self.pair.keys()
-        Correspondance.id = max(keys)
+        Correspondence.id = max(keys)
 
 
     ######################################## use for GUI #############################################
@@ -136,11 +134,11 @@ class AnnotationTool:
         ax.axis('off')  # Hide axes for clean image display
         canvas.draw()
 
-    def addCorrespondanceGUI(self, ax1, ax2, canvas1, canvas2, listbox, plt_ref, msg):
-        if self.inuse_addCorrespondanceGUI == True:
+    def addCorrespondenceGUI(self, ax1, ax2, canvas1, canvas2, listbox, plt_ref, msg):
+        if self.inuse_addCorrespondenceGUI == True:
             return
         
-        self.inuse_addCorrespondanceGUI = True
+        self.inuse_addCorrespondenceGUI = True
         if(self.im1 is None or self.im2 is None):
             print("Not enought images.")
             msg.config(text="Message: Not enought images.")
@@ -160,8 +158,8 @@ class AnnotationTool:
         canvas2.draw()
 
         # add
-        self.addCorrespondance(Correspondance(Point2(x1,y1),Point2(x2,y2)))
-        id = Correspondance.id
+        self.addCorrespondence(Correspondence(Point2(x1,y1),Point2(x2,y2)))
+        id = Correspondence.id
         listbox.insert(id,f'Pair {id}')
 
         # update image
@@ -176,23 +174,23 @@ class AnnotationTool:
         plt_ref["texts1"][id] = text1
         plt_ref["texts2"][id] = text2
 
-        self.inuse_addCorrespondanceGUI = False
+        self.inuse_addCorrespondenceGUI = False
         msg.config(text="Message:")
 
-    def removeCorrespondanceGUI(self,listbox, canvas1, canvas2, plt_ref):
-        if self.inuse_removeCorrespondanceGUI== True:
+    def removeCorrespondenceGUI(self,listbox, canvas1, canvas2, plt_ref):
+        if self.inuse_removeCorrespondenceGUI== True:
             return
-        self.inuse_removeCorrespondanceGUI = True
+        self.inuse_removeCorrespondenceGUI = True
         idx = listbox.curselection()
         if(not idx):
             print("No item selected!")
-            self.inuse_removeCorrespondanceGUI = False
+            self.inuse_removeCorrespondenceGUI = False
             return
         idx = idx[0]
         name = listbox.get(idx)
         id = int(name.split()[-1])
         listbox.delete(idx)
-        self.removeCorrespondance(id)
+        self.removeCorrespondence(id)
 
         # remove points and text on the images
         plt_ref["points1"][id].remove()
@@ -210,17 +208,17 @@ class AnnotationTool:
         canvas1.draw()
         canvas2.draw()
 
-        self.inuse_removeCorrespondanceGUI = False
+        self.inuse_removeCorrespondenceGUI = False
 
 
 
-    def saveCorrespondanceGUI(self):
-        filename = asksaveasfilename(defaultextension=".pkl")
-        self.saveCorrespondance(filename)
+    def saveCorrespondenceGUI(self):
+        filename = asksaveasfilename(defaultextension=".pkl",filetypes=(("pickle file", "*.pkl"),("All Files", "*.*")))
+        self.saveCorrespondence(filename)
 
-    def loadCorrespondanceGUI(self):
+    def loadCorrespondenceGUI(self):
         filename = askopenfilename()
-        self.loadCorrespondance(filename)
+        self.loadCorrespondence(filename)
 
     def selectImageGUI(self,idx,ax, canvas):
         filename = askopenfilename()
@@ -240,7 +238,7 @@ class AnnotationTool:
         window.geometry("1020x650")
         window.protocol("WM_DELETE_WINDOW", lambda: self.exit(window))
 
-        # store points on images and text label ref so when user update the correspondance pair, it can relfect on the images
+        # store points on images and text label ref so when user update the correspondence pair, it can relfect on the images
         plt_ref = {"points1":{},
                    "texts1":{},
                    "points2":{},
@@ -266,7 +264,7 @@ class AnnotationTool:
         canvas2.get_tk_widget().grid(row=0,column=1, padx = 10, pady = 20)
         
 
-        # correspondance pair table
+        # correspondence pair table
         listbox = Listbox(window, height = 20, 
                   width = 20, 
                   activestyle = 'dotbox')
@@ -282,20 +280,20 @@ class AnnotationTool:
         btn_im2.grid(row=1,column=1,pady = 2)
 
 
-        # add correspondance  
-        btn_pair = Button(window, text="Add pair", width = default_width, command = lambda: self.addCorrespondanceGUI(ax1,ax2,canvas1,canvas2,listbox,plt_ref, msg))
+        # add correspondence  
+        btn_pair = Button(window, text="Add pair", width = default_width, command = lambda: self.addCorrespondenceGUI(ax1,ax2,canvas1,canvas2,listbox,plt_ref, msg))
         btn_pair.grid(row=1,column=2,pady = 2)
         
         # remove listitem
-        btn_remove = Button(window, text="Remove pair", width = default_width, command= lambda: self.removeCorrespondanceGUI(listbox,canvas1, canvas2, plt_ref))
+        btn_remove = Button(window, text="Remove pair", width = default_width, command= lambda: self.removeCorrespondenceGUI(listbox,canvas1, canvas2, plt_ref))
         btn_remove.grid(row=2,column=2,pady = 2)
 
 
 
         # save/load file
-        btn_save = Button(window, text="Save file", width = default_width, command = lambda: self.saveCorrespondanceGUI())
+        btn_save = Button(window, text="Save file", width = default_width, command = lambda: self.saveCorrespondenceGUI())
         btn_save.grid(row=3,column=2)
-        btn_load = Button(window, text="Load file", width = default_width, command = lambda: self.loadCorrespondanceGUI())
+        btn_load = Button(window, text="Load file", width = default_width, command = lambda: self.loadCorrespondenceGUI())
         btn_load.grid(row=4,column=2)
 
         # quit button
