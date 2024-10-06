@@ -2,3 +2,4 @@ main.py
 *.jpg
 *.pkl
 __pycache__
+/FEI
