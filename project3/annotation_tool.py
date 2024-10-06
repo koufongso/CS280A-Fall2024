@@ -142,7 +142,7 @@ class AnnotationTool:
         if(self.im1 is None or self.im2 is None):
             print("Not enought images.")
             msg.config(text="Message: Not enought images.")
-            self.inuse = False
+            self.inuse_addCorrespondenceGUI = False
             return
         # point 1 from image 1
         plt.sca(ax1)
