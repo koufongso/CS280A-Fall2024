@@ -8,6 +8,34 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 
+import numpy as np
+
+# utility function, use to load and convert correspondence data to np.array
+
+def loadCorrespondence(filepath:str):
+    '''
+    read the correspondence pair from the pickle file. the pair is  a dictionary with {id, Correspondence object} pair
+    '''
+    print(f"load correspondence pari from {filepath}")
+    with open(filepath,'rb') as file:
+        pair = pickle.load(file)
+        print("Correspondence pair loaded!")
+        file.close()
+    return pair
+
+def coordsFromPairs(pair):
+    '''
+    Extract coordinates from a list of Correspondence pairs into two 2D arrays.
+    '''
+    pts1 = []
+    pts2 = []
+
+    for key, c in pair.items():
+        pts1.append([c.obj1.x,c.obj1.y])
+        pts2.append([c.obj2.x,c.obj2.y])
+    
+    return np.array(pts1), np.array(pts2)
+
 
 class Point2:
     '''
