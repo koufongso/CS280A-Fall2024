@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <title>CS280A Fall2024 Project 4</title>
+
+    <style>
+        .equal-height {
+            height: 400px;
+            /* Adjust the height as needed */
+            object-fit: cover;
+            /* Ensures the images scale without stretching */
+        }
+    </style>
+
+</head>
+
+<body>
+    <nav class="navbar"
+        style="--bs-navbar-brand-hover-color: white; --bs-navbar-brand-color: white; background-color: #003262;">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 fs-4 fw-bold">UC Berkeley CS280A: Intro to Computer Vision and Computational
+                Photography
+                (Fall2024)</span>
+        </div>
+    </nav>
+
+    <br>
+    <div class="container-fluid content">
+        <div class="row">
+            <div class="col-2">
+                <div class="sticky-top">
+                    <ul class="nav flex-column fs-5">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project1/index.html">Project 1</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project2/index.html">Project 2</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project3/index.html">Project 3</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Project 4</a>
+                            <ul class="nav flex-column fs-6" style="margin-left: 30px;">
+                                <li class="nav-item"><a class="nav-link" href="#overview">Overview</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#homography">Homography Warping</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#cylindrical">Cylindrical Warping</a>
+                                <li class="nav-item"><a class="nav-link" href="#mosaicing">Image Mosaicing</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Project 5</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+
+
+            <div class="col-9 content">
+                <div id="project2">
+                    <h1>Project 4: Image Warping and Mosaicing (<a
+                            href="https://github.com/koufongso/CS280A-Fall2024/tree/main/project4"
+                            target="_blank">GitHub repo</a>)</h1>
+                </div>
+                <br>
+
+                <div id="body">
+                    <h2 id="overview">Overview</h2>
+                    <p> In Project 3, we applied image warping using affine transformation, which is effective when both
+                        images are captured from the same plane without any camera rotation. In this project, we will
+                        use different transformation to warp images taken from different angles but from the same
+                        location. This technique is commonly used for image stitching and creating image mosaics. There
+                        are three main sections: the first section covers homography warping, which involves projecting
+                        a planar image onto a different image plane using a perspective matrix and a rotational model.
+                        Next, we will discuss cylindrical warping, which involves projecting a planar image onto a
+                        cylindrical surface. Lastly, we will explore the general method of image mosaicing using the
+                        warping techniques discussed.</p>
+
+                    <br>
+
+                    <h2 id="homography">Homography Warping</h2>
+                    <h4>Baic Idea</h4>
+                    <p>Figure 1 demonstrates the basic idea of homography warping. Given two images taken from different
+                        angles, we want to project them onto an arbitrary image plane to create a single,
+                        wide-field-of-view image. The goal is to determine the correct transformation function that
+                        accurately projects these images onto the chosen reference image plane. To simplify this
+                        process, we use one image plane as the reference, eliminating the need to create a new
+                        coordinate system for an image plane. For images with a fixed Center of Projection (COP), this
+                        can be achieved using a perspective transformation.</p>
+
+                    <figure>
+                        <img src="./doc/webpage/figure1.png" alt="" style="height:40%">
+                        <figcaption>Figure 1. Warping of two images taken from different angles.</figcaption>
+                    </figure>
+
+                    <h4 id="transformation">Transformation Matrix</h4>
+                    <p>Let's take a closer look at the transformation matrix to better understand its structure and how
+                        it works. To project a 3D point in space [X, Y, Z] onto an image plane coordinate [x,
+                        y], we have:</p>
+
+                    <img src="./doc/webpage/camera_projection.png" style="height:40%">
+
+                    <p>A1 is usually called the camera intrinsic matrix, while T1 is referred to as the camera extrinsic
+                        matrix, which transforms 3D points from a fixed coordinate system to the camera coordinate
+                        system. T21 is the transformation matrix that transforms coordinates from camera 1's coordinate
+                        system to camera 2's coordinate system.</p>
+
+                    <p>We can now examine how various factors affect the complexity of these equations:</p>
+                    <ul>
+                        <li>Fixed COP: No translation between camera coordinate systems means that T21 can be written as
+                            a 3x3 rotational matrix. This can be represented by 3 parameters (Euler angle
+                            representation) or 3 unknowns.</li>
+                        <li>No zooming: A zooming camera will change fx and fy. If there is no zooming, A2 is the same
+                            as A1, resulting in 4 unknowns; otherwise, there will be 6 unknowns.</li>
+                    </ul>
+
+                    <p>If we fix the COP and allow zooming, we will have 3 + 6 = 9 unknowns (we can normalize the last
+                        entry, leaving us with 8). The expression A2 × T21 × inv(A1) will yield the perspective matrix.
+                        If we capture images with a fixed COP and control the rotation (e.g., rotating only horizontally
+                        or around the y/vertical axis), we can simplify the matrix T21. We will discuss the rotation
+                        model later.</p>
+
+                    <p>It is also possible to warp images onto the same image plane even without a fixed COP; however,
+                        this would introduce three additional unknowns (representing translation between the cameras).
+                    </p>
+
+                    <br>
+                    <h4>Find the Perspective Matrix</h4>
+                    <p>We can use correspondences to find the perspective matrix we need. The perspective matrix M is in
+                        the form of [[a, b, c], [d, e, f], [g, h, 1]]. Given a point [x1, y1] and the transformed point
+                        [x1', y1'], we have:</p>
+                    <figure>
+                        <img src="./doc/webpage/perspective_matrix.png" alt="" style="height:25%">
+                    </figure>
+
+                    <p>where w is the scaling factor and can be interpreted as the depth of the point.</p>
+
+                    <p>We can rewrite this in the form:</p>
+                    <figure>
+                        <img src="./doc/webpage/solve_perspective_matrix.png" alt="" style="width:40%">
+                    </figure>
+
+                    <p>To solve this linear system of equations, we need to have at least 4 pairs of correspondence
+                        points. Since we are selecting correspondence points by hand, which is not pinpoint accurate, it
+                        is better to have more than 4 pairs of correspondence points to achieve robust results. We can
+                        then find the perspective matrix by solving the least squares problem.</p>
+
+
+
+                    <h4>Image Rectification Demo</h4>
+                    <p>We can also use this method to find the perspective matrix that can be used to rectify an image.
+                        We can pick some keypoints on an image and define their coordinates on an image plane. For
+                        example, we can select the 4 corners of a window from an image and define their coordinates as
+                        the corners of a rectangle. We can then compute the perspective matrix and transform this image
+                        into the new image plane with the "rectification effect".</p>
+
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/rectification/keyboard_origin.jpg" alt="" style="width:50%">
+                            <figcaption>Original image. Keypoints are marked in green.</figcaption>
+                        </figure>
+
+                        <figure class="col">
+                            <img src="./doc/rectification/keyboard_rectified.jpg" alt="" style="width:50%">
+                            <figcaption>Rectified image. Keypoints after transformation are marked in green. We can see
+                                that the rectified image appears as if we are looking downward.</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Special Case: Rotational Model</h4>
+                    <p>As we mentioned in the previous <a href="#transformation">section</a>, if we only rotate the
+                        camera, it is possible to simplify the transformation matrix. Additionally, it is possible to
+                        back-compute the camera intrinsic parameters from the transformation matrix.</p>
+
+                    <p>If we take images using a fixed COP, with no zooming, and only rotate the camera horizontally
+                        (i.e., rotate along the camera's y/vertical axis), we can understand the structure of the
+                        transformation matrix.</p>
+                    <img src="./doc/webpage/rotation_matrix.png" alt="" style="width:50%">
+
+                    <p>The result of using the rotational matrix model to perform image mosaicing is shown <a
+                            href="#rotation_demo">here</a>.</p>
+                    <br>
+
+                    <h2 id="cylindrical">Cylindrical Warping</h2>
+                    <h4>Basic Idea</h4>
+                    <p>Planar projection is not the only option here; we can also project images onto a cylindrical
+                        surface. Figure 2 illustrates cylindrical warping. Note that the x/horizontal axis does not
+                        follow the curve of the surface.</p>
+
+                    <figure>
+                        <img src="./doc/webpage/figure2.png" alt="" style="width:50%">
+                        <figcaption>Figure 2. Warping of images onto a cylindrical surface.</figcaption>
+                    </figure>
+
+                    <h4>Mapping between Planar and Cylindrical Surface</h4>
+                    <p>We can map the coordinates between the planar and cylindrical surfaces as illustrated below. \( f
+                        \) is the focal length of the camera, and \( r \) is the radius of the cylinder, which is a
+                        tunable parameter we decide.</p>
+
+                    <p><span style="color: red;">Important</span>: To simplify the formula, we shift the coordinate
+                        system so that the center of the image is located at the origin. Therefore, we need to shift it
+                        back to the regular image coordinate system after computing (i.e., the top-left corner pixel is
+                        located at the origin).</p>
+
+                    <img src="./doc/webpage/figure3.png" alt="" style="width:70%">
+
+
+                    <p>We can derive the formula for forward and inverse mapping between the planar and cylindrical
+                        surfaces:</p>
+                    <img src="./doc/webpage/map2cylinder.png" alt="" style="height:40%">
+
+                    <p>The focal length of the camera can be computed as:</p>
+                    <img src="./doc/webpage/focal.png" alt="" style="height:20%">
+                    <p>HFOV: horizontal field of view.</p>
+
+
+                    <h4>Cylindrical Projection Demo</h4>
+                    <p>Below are some sample images projected onto the cylindrical surface; here, I set the radius equal
+                        to the focal length \( f \). I am using a camera with an HFOV of 65.6 degrees. Notice the
+                        distortion effects on the images from cylindrical projection (especially the bending of the
+                        building edges).</p>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./images/test/01.jpg" class="img-fluid equal-height">
+                            Planar image
+                        </figure>
+
+                        <figure class="col">
+                            <img src="./doc/blend_cylinrical/01_c.jpg" class="img-fluid equal-height">
+                            Cylindrical image
+                        </figure>
+                    </div>
+
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./images/test/02.jpg" class="img-fluid equal-height">
+                            Planar image
+                        </figure>
+
+                        <figure class="col">
+                            <img src="./doc/blend_cylinrical/02_c.jpg" class="img-fluid equal-height">
+                            Cylindrical image
+                        </figure>
+                    </div>
+
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./images/test/03.jpg" class="img-fluid equal-height">
+                            Planar image
+                        </figure>
+
+                        <figure class="col">
+                            <img src="./doc/blend_cylinrical/03_c.jpg" class="img-fluid equal-height">
+                            Cylindrical image
+                        </figure>
+                    </div>
+
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./images/test/04.jpg" class="img-fluid equal-height">
+                            Planar image
+                        </figure>
+
+                        <figure class="col">
+                            <img src="./doc/blend_cylinrical/04_c.jpg" class="img-fluid equal-height">
+                            Cylindrical image
+                        </figure>
+                    </div>
+
+
+                    <h2 id="mosaicing">Image Mosaicing</h2>
+                    <h4>Planar Image Mosaicing</h4>
+                    <p>There are two ways to do image mosaicing. One method is to warp two images and produce a new
+                        image, then repeat this step to recursively generate the final mosaic. The other method is to
+                        warp all images onto one common reference plane and blend them. Here, I chose the "one-shot"
+                        method. I will skip the technical details and just describe the general steps.</p>
+
+                    <ol>
+                        <li><b>Choose the reference image</b>: Select one reference image and use it as the reference
+                            image plane.</li>
+                        <li><b>Warp all images</b>: Warp all images to this plane using the perspective matrix. Also,
+                            keep track of the corner coordinates of the warped images. We need to compute the overlap
+                            area later, and since the perspective transformation is a linear operation, the warped
+                            image's shape is a polygon defined by its four corners. Therefore, I also keep track of
+                            these corners' coordinates.</li>
+                        <li><b>Blending</b>: Manually choose two images with overlap to blend. I tested the average
+                            blending method and multi-band (Laplacian blending from Project 2) blending method here.
+                            <ul>
+                                <li><b>Averaging blending</b>: I_blend(i,j) = 0.5×I1(i,j)+0.5 ×I2(i,j) for (i,j) in
+                                    the overlap area.</li>
+                                <li><b>Multi-band blending</b>: To prepare the mask, compute the overlap area. For each
+                                    pixel in that area, we compare the distances between this pixel and the two images'
+                                    edges. For example, for a given pixel (i,j), the distances to the nearest edges
+                                    of image 1 and image 2 are d1 and d2, respectively. The mask for image 1,
+                                    w(i,j), is d1/(d1 + d2). This means that the closer the pixel is
+                                    to image 1's edge, the less weight is given to image 1's pixel. After obtaining the
+                                    mask, use the Laplacian blending method with the Laplacian stack of images and the
+                                    Gaussian stack of the mask.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h4>Planar Mosaic Demo 1</h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./images/test/01.jpg" class="img-fluid equal-height">
+                            <p>Planar image 1</p>
+                        </figure>
+                        <figure class="col">
+                            <img src="./images/test/02.jpg" class="img-fluid equal-height">
+                            <p>Planar image 2</p>
+                        </figure>
+                    </div>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/blender_two/warp_image01.jpg" class="img-fluid equal-height">
+                            <p>Warpped image 1</p>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/blender_two/warp_image02.jpg" class="img-fluid equal-height">
+                            <p>Warpped image 2</p>
+                        </figure>
+                    </div>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/blender_two/im_blend_simple.jpg" class="img-fluid equal-height">
+                            <p>Averaging blending</p>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/blender_two/im_blend_laplacian.jpg" class="img-fluid equal-height">
+                            <p>Multi-band blending</p>
+                        </figure>
+                    </div>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/blender_two/alpha.jpg" class="img-fluid equal-height">
+                            <p>Mask used by image 1 in multi-band blending</p>
+                        </figure>
+                    </div>
+                    <br>
+                    <h4>Planar Mosaic Demo 2: Four images</h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./images/test/01.jpg" class="img-fluid equal-height">
+                            <p>Planar image 1</p>
+                        </figure>
+                        <figure class="col">
+                            <img src="./images/test/02.jpg" class="img-fluid equal-height">
+                            <p>Planar image 2</p>
+                        </figure>
+                    </div>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./images/test/03.jpg" class="img-fluid equal-height">
+                            <p>Warpped image 3</p>
+                        </figure>
+                        <figure class="col">
+                            <img src="./images/test/04.jpg" class="img-fluid equal-height">
+                            <p>Warpped image 4</p>
+                        </figure>
+                    </div>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/blend_homography/blend_simple.jpg" class="img-fluid">
+                            <p>Averaging blending</p>
+                        </figure>
+                    </div>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/blend_homography/blend_multiband.jpg" class="img-fluid">
+                            <p>Multi-band blending</p>
+                        </figure>
+                    </div>
+
+                    <h4 id="rotation_demo">Rotational Model Mosaicing Demo</h4>
+                    <p>We use the rotational model to warp the image. Noticed that since we assume pure rotation,
+                        the
+                        image verticle edges are stricly verticle, whcih is differnt than the one using perspective
+                        matrix.</p>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/blend_rotation/blend_r.jpg" class="img-fluid">
+                            <p>Multi-band blending using rotational model</p>
+                        </figure>
+                    </div>
+
+
+                    <h4>Cylindrical Mosaicing Demo</h4>
+                    <p>When using cylindrical coordinate, we can just simply use a trasnlation matrix rather than
+                        perspective matrix to warp the image. The only diffence here is we need to warp the
+                        correspondence keypointsthe to the cylindrical coordiantes first and then compute the
+                        translation matrix and use it to warp the images, the rest of the workflow is the same.</p>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/blend_cylinrical/blend__multiband_c.jpg" class="img-fluid">
+                            <p>Multi-band blending</p>
+                        </figure>
+                    </div>
+
+                    <p>You can see that compare to the planar mosaic, the cylindrical mosaic looks better and don't
+                        have
+                        the strong distorsion effect when the image is away from the reference image center. You can
+                        see
+                        that the warpped image 4 in the plannar surface is largely distorted since it is relatively
+                        far
+                        away form the image 2, which is our reference image. But we won't see such strong distrosion
+                        in
+                        the cylindrical surface. </p>
+
+                    <p>The defects you see in the images liek the blur in the near plantation is likely due to the
+                        face
+                        that the images were taken by hand and the COP is not strictly fixed.</p>
+
+                </div>
+
+                <nav class="navbar"
+                    style="--bs-navbar-brand-hover-color: white; --bs-navbar-brand-color: white; background-color: #003262;">
+                    <div class="container-fluid">
+                        <span class="navbar-brand mb-0 fs-4 fw-bold"> </span>
+                    </div>
+                </nav>
+            </div>
+
+
+        </div>
+    </div>
+
+
+
+</body>
+
+</html>
