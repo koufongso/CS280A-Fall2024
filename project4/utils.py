@@ -24,7 +24,7 @@ def createLaplacianStack(im, lv, sz):
     # create laplacian stack by subtraction
     for i in range(lv):
         stackL.append(stackG[i]-stackG[i+1])
-    stackL.append(stackG[i+1])
+    stackL.append(stackG[i+1].copy())
     return stackL
 
 
