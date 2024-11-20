@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+
+    <title>CS280A Fall2024 Project 4</title>
+
+    <style>
+        .equal-height {
+            height: 400px;
+            /* Adjust the height as needed */
+            object-fit: cover;
+            /* Ensures the images scale without stretching */
+        }
+    </style>
+
+</head>
+
+<body>
+    <nav class="navbar"
+        style="--bs-navbar-brand-hover-color: white; --bs-navbar-brand-color: white; background-color: #003262;">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 fs-4 fw-bold">UC Berkeley CS280A: Intro to Computer Vision and Computational
+                Photography
+                (Fall2024)</span>
+        </div>
+    </nav>
+
+    <br>
+    <div class="container-fluid content">
+        <div class="row">
+            <div class="col-2">
+                <div class="sticky-top">
+                    <ul class="nav flex-column fs-5">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project1/index.html">Project 1</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project2/index.html">Project 2</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project3/index.html">Project 3</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../project4/index.html">Project 4</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Project 5</a>
+                            <ul class="nav flex-column fs-6" style="margin-left: 30px;">
+                                <li class="nav-item"><a class="nav-link" href="#overview">Overview</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#1.1">Forward Process</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#1.2">Classical Denoising</a>
+                                <li class="nav-item"><a class="nav-link" href="#1.3">One-Step Denoising</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#1.4">Iterative Denoising</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#1.5">Diffusion Model Sampling</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#1.6">Classifier-Free Guidance (CFG)
+                                    </a></li>
+                                <li class="nav-item"><a class="nav-link" href="#1.7">Image-to-image Translation</a></li>
+                                <ul>
+                                    <li class="nav-item"><a class="nav-link" href="#1.7.1">Editing Hand-Drawn and Web
+                                            Images</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="#1.7.2">Inpainting</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="#1.7.3">Text-Conditional
+                                            Image-to-image Translation</a></li>
+                                </ul>
+
+                                <li class="nav-item"><a class="nav-link" href="#1.8">Visual Anagrams</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#1.9">Hybrid Images</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#unet">Training a Single-Step Denoising
+                                        UNet </a></li>
+                                <li class="nav-item"><a class="nav-link" href="#time-condition">Training a Diffusion
+                                        Model: Time-Conditioned UNet</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#class-condition">Training a Diffusion
+                                        Model: Class-Conditioned UNet</a></li>
+
+                                <li class="nav-item"><a class="nav-link" href="#bw">B&W</a></li>
+
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+
+
+            <div class="col-9 content">
+                <div id="project2">
+                    <h1>Project 5: Fun With Diffusion Models (<a
+                            href="https://github.com/koufongso/CS280A-Fall2024/tree/main/project5"
+                            target="_blank">GitHub repo</a>)</h1>
+                </div>
+                <br>
+
+                <div id="body">
+                    <h2 id="overview">0 Sampling from Model</h2>
+                    <div class="row">
+                        <h4>Number of steps = 5</h4>
+                        <figure class="col">
+                            <img src="./doc/samples/01_5step.png">
+                            <figcaption class="figure-caption">"an oil painting of a snowy mountain village"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/samples/02_5step.png">
+                            <figcaption class="figure-caption">"a man wearing a hat"</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/samples/03_5step.png">
+                            <figcaption class="figure-caption">"a rocket ship"</figcaption>
+                        </figure>
+                    </div>
+
+                    <div class="row">
+                        <h4>Number of steps = 20</h4>
+                        <figure class="col">
+                            <img src="./doc/samples/01.png">
+                            <figcaption class="figure-caption">"an oil painting of a snowy mountain village"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/samples/02.png">
+                            <figcaption class="figure-caption">"a man wearing a hat"</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/samples/03.png">
+                            <figcaption class="figure-caption">"a rocket ship"</figcaption>
+                        </figure>
+                    </div>
+
+                    <div class="row">
+                        <h4>Number of steps = 50</h4>
+                        <figure class="col">
+                            <img src="./doc/samples/01_50step.png">
+                            <figcaption class="figure-caption">"an oil painting of a snowy mountain village"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/samples/02_50step.png">
+                            <figcaption class="figure-caption">"a man wearing a hat"</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/samples/03_50step.png">
+                            <figcaption class="figure-caption">"a rocket ship"</figcaption>
+                        </figure>
+                    </div>
+
+                    <p>We can see that the output from the model in general reflect the text prompts' description. And
+                        we can
+                        observe
+                        that as the number of steps incrases, the quality of the output is higher and less cartoonish
+                        and it is closer to the description of the text prompt.</p>
+
+                </div>
+
+
+                <div id="body">
+                    <h2 id="1.1">1.1 Forward Process</h2>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/test_image.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t=0 (original)
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/forward/01.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 250</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/forward/t500.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 500</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/forward/t750.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 750</figcaption>
+                        </figure>
+                    </div>
+                </div>
+
+
+                <div id="body">
+                    <h2 id="1.2">1.2 Classical Denoising (Gaussian Blur)</h2>
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/denoise/classic/t250.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 250</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/classic/t500.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 500</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/classic/t750.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 750</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/denoise/classic/t250_denoise.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Classic Denoising t = 250</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/classic/t500_denoise.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Classic Denoising t = 500</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/classic/t750_denoise.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Classic Denoising t = 750</figcaption>
+                        </figure>
+                    </div>
+                </div>
+
+
+                <div id="body">
+                    <h2 id="1.3">1.3 One-Step Denoising</h2>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/denoise/one_step/t250.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 250</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/one_step/t500.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 500</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/one_step/t750.png" style="height: 250px;">
+                            <figcaption class="figure-caption">t = 750</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/denoise/one_step/t250_denoise.png" style="height: 250px;">
+                            <figcaption class="figure-caption">One-Step Denoising t = 250</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/one_step/t500_denoise.png" style="height: 250px;">
+                            <figcaption class="figure-caption">One-Step Denoising t = 500</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/one_step/t750_denoise.png" style="height: 250px;">
+                            <figcaption class="figure-caption">One-Step Denoising t = 750</figcaption>
+                        </figure>
+                    </div>
+                </div>
+
+
+                <div id="body">
+                    <h2 id="1.4">1.4 Iterative Denoising</h2>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/noisy.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Step=0 (original noisy image)</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/i10.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Step=10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/i15.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Step=15</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/i20.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Step=20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/i25.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Step=25</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/i30.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Step = 30</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/i_final.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Final</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Comparision</h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/classic.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Classic (Gaussian Blur) Denoising</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/one_step.png" style="height: 250px;">
+                            <figcaption class="figure-caption">One-step Denoising</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/denoise/iterative/i_final.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Iterative Denoising</figcaption>
+                        </figure>
+                    </div>
+
+                    <p>We can see that iterative denoising yeiled the best result. Comparing to one-step denoising
+                        method, the iterative denoising clearly has a better background and more details in the denoised
+                        image.</p>
+
+                </div>
+
+
+                <div id="body">
+                    <h2 id="1.5">1.5 Diffusion Model Sampling</h2>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/diffusion_model_sampling/01.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/diffusion_model_sampling/02.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/diffusion_model_sampling/03.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/diffusion_model_sampling/04.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/diffusion_model_sampling/05.png" style="height: 250px;">
+                        </figure>
+                    </div>
+                </div>
+
+                <p>We can see that although the diffusion model can genearete some images, but their quality is not so
+                    good. We will use a technique called Classifier-Free Guidance (CFG) to improve it.</p>
+
+
+                <div id="body">
+                    <h2 id="1.6">1.6 Classifier-Free Guidance (CFG)</h2>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/cfg/01.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/cfg/02.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/cfg/03.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/cfg/04.png" style="height: 250px;">
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/cfg/05.png" style="height: 250px;">
+                        </figure>
+                    </div>
+                </div>
+
+                <p> We can see now, using CFG, the quality of the images are largely improved. And the content of the
+                    images "make more sense".</p>
+
+                <div id="body">
+                    <h2 id="1.7">1.7 Image-to-image Translation</h2>
+                    <h4>Demo 1</h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/image-image/01_1.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/01_3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/01_5.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/01_7.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/01_10.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/01_20.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/test_image.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original image</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Demo 2 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/image-image/02_1.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/02_3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/02_5.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/02_7.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/02_10.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/02_20.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/test_image2.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original image</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Demo 3 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/image-image/03_1.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/03_3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/03_5.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/03_7.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/03_10.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/image-image/03_20.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/test_image3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original image</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4 id="1.7.1">1.7.1 Editing Hand-Drawn and Web
+                        Images</h4>
+
+                    <h4>Demo 1 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/01_1.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/01_3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/01_5.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/01_7.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/01_10.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/01_20.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/01.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original image</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Demo 2 (Hand-Drawn Image) </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/02_1.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/02_3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/02_5.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/02_7.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/02_10.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/02_20.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/02.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original image</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Demo 1 (Hand-Drawn Image) </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/03_1.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/03_3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/03_5.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/03_7.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/03_10.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/03_20.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index=20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hand-drawn/03.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original image</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <h4 id="1.7.2">1.7.2 Inpainting</h4>
+                    <h4>Demo 1 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/inpainting/01_image.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original Image</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/01_mask.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Mask</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/01_toplace.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Area to be replaced index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/01_inpaint.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Inpaint Image</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Demo 2 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/inpainting/02_image.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original Image</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/02_mask.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Mask</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/02_toplace.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Area to be replaced index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/02_inpaint.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Inpaint Image</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <h4>Demo 3 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/inpainting/03_image.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original Image</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/03_mask.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Mask</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/03_toplace.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Area to be replaced index=5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/inpainting/03_inpaint.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Inpaint Image</figcaption>
+                        </figure>
+                    </div>
+                </div>
+
+
+                <div>
+                    <h4 id="1.7.3">1.7.3 Text-Conditional
+                        Image-to-image Translation</h4>
+
+
+                    <h4>Demo 1, Prompt: "a rocket ship" </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/01.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/02.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/03.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/04.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/05.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/06.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/test_image.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original Image</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <h4>Demo 2, Prompt: "an oil painting of a snowy mountain village" </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/2_01.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/2_02.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/2_03.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/2_04.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/2_05.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/2_06.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/test_image2.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original Image</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <h4>Demo 3, Prompt: "a lithograph of a skull" </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/3_01.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 1</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/3_02.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 3</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/3_03.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 5</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/3_04.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 7</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/3_05.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 10</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/text-conditional_image-image/3_06.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Start index = 20</figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/test_image3.png" style="height: 250px;">
+                            <figcaption class="figure-caption">Original Image</figcaption>
+                        </figure>
+
+                    </div>
+                </div>
+
+                <div id="body">
+                    <h2 id="1.8">1.8 Visual Anagrams</h2>
+
+                    <h4>Demo 1: </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/visual_anagrams/01_a.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"an oil painting of people around a campfire"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/visual_anagrams/01_a_flip.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"an oil painting of an old man"</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Demo 2 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/visual_anagrams/02.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"a photo of a dog"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/visual_anagrams/02_flip.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"an oil painting of an old man"</figcaption>
+                        </figure>
+                    </div>
+
+                    <h4>Demo 3 </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/visual_anagrams/03.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"an oil painting of a snowy mountain village"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/visual_anagrams/03_flip.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"a lithograph of a skull"</figcaption>
+                        </figure>
+                    </div>
+                </div>
+
+                <div id="body">
+                    <h2 id="1.9">1.9 Hybrid Images</h2>
+                    <h4>Demo 1: </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/hybrid/01.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"a lithograph of waterfalls"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hybrid/01.png" style="height: 100px;">
+                            <figcaption class="figure-caption">"a lithograph of a skull"</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <h4>Demo 2: </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/hybrid/02.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"an oil painting of an old man"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hybrid/02.png" style="height: 100px;">
+                            <figcaption class="figure-caption">"a photo of a dog"</figcaption>
+                        </figure>
+                    </div>
+
+
+                    <h4>Demo 3: </h4>
+                    <div class="row">
+                        <figure class="col">
+                            <img src="./doc/hybrid/03.png" style="height: 250px;">
+                            <figcaption class="figure-caption">"an oil painting of a snowy mountain village"
+                            </figcaption>
+                        </figure>
+                        <figure class="col">
+                            <img src="./doc/hybrid/03.png" style="height: 100px;">
+                            <figcaption class="figure-caption">"a lithograph of a skull"</figcaption>
+                        </figure>
+                    </div>
+
+
+
+                </div>
+
+
+                <h2 id="unet">Training a Single-Step Denoising UNet</h2>
+
+                <h4>Noisying process </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/Unet/add_noise.png" style="height: 500px;">
+                        </figcaption>
+                    </figure>
+                </div>
+
+
+                <h4>UNet Trainign Loss Curve </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/Unet/loss_curve_all2.png" style="height: 500px;">
+                        </figcaption>
+                    </figure>
+                </div>
+
+
+                <h4>Sampling Result Comparison (Epoch 1 vs Epoch 5) </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/Unet/denoise_compare_1_5.png" style="height: 500px;">
+                        </figcaption>
+                    </figure>
+                </div>
+
+
+
+                <h4>Out-of-Distribution Result </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/Unet/out-of-distribution.png" style="height: 500px;">
+                        </figcaption>
+                    </figure>
+                </div>
+
+
+
+                <h2 id="time-condition">Training a Diffusion Model: Time-Conditioned UNet</h2>
+
+                <h4>Training Loss Curve </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/TimeCondition/loss_curve.png" style="height: 500px;">
+                        </figcaption>
+                    </figure>
+                </div>
+
+                <h4>Sampling Results </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/TimeCondition/demo_01.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 1</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/TimeCondition/demo_05.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 5</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/TimeCondition/demo_10.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 10</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/TimeCondition/demo_15.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 15</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/TimeCondition/demo_20.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 20</figcaption>
+                    </figure>
+                </div>
+
+
+
+                <h2 id="class-condition">Training a Diffusion Model: Class-Conditioned UNet</h2>
+
+                <h4>Training Loss Curve </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/ClassCondition/loss_curve.png" style="height: 500px;">
+                        </figcaption>
+                    </figure>
+                </div>
+
+                <h4>Sampling Results </h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/ClassCondition/demo_01.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 1</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/ClassCondition/demo_05.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 5</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/ClassCondition/demo_10.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 10</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/ClassCondition/demo_15.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 15</figcaption>
+                    </figure>
+                </div>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/partB/ClassCondition/demo_20.png" style="height: 500px;">
+                        <figcaption>Time-Conditioned UNet Epoch 20</figcaption>
+                    </figure>
+                </div>
+
+
+                <h2 id="bw">B&W</h2>
+                <h4>Course Icon generated using diffusion model and inpaint technique: keep the logo "UC Berkeley CS
+                    280A" and use diffusion model to generate the backgournd using a customized prompt: ""a lithograph
+                    of a bear silhouette with grid pattern and blue and gold background with grid pattern".</h4>
+                <div class="row">
+                    <figure class="col">
+                        <img src="./doc/icon.png" style="height: 500px;">
+                        <figcaption>Course Icon</figcaption>
+                    </figure>
+                </div>
+
+                <div class="row">
+                    <figure class="col">
+                        <img src="./images/logo.png" style="height: 500px;">
+                        <figcaption>logo image</figcaption>
+                    </figure>
+                    <figure class="col">
+                        <img src="./images/logo_mask.png" style="height: 500px;">
+                        <figcaption>logo mask</figcaption>
+                    </figure>
+                </div>
+                
+            </div>
+
+
+
+            <nav class="navbar"
+                style="--bs-navbar-brand-hover-color: white; --bs-navbar-brand-color: white; background-color: #003262;">
+                <div class="container-fluid">
+                    <span class="navbar-brand mb-0 fs-4 fw-bold"> </span>
+                </div>
+            </nav>
+        </div>
+    </div>
+    </div>
+</body>
+
+</html>
