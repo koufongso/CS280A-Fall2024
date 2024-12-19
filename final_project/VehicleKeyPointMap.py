@@ -79,8 +79,8 @@ class VehicleKeyPointMap:
 
         self.h0 = 550
         self.w0 = 2400
-
-        self.factor_m_p = 0.0017 # approx [m/px]
+        self.d = 3.0 # distance between wheels
+        self.factor_m_p = self.d /(self.coord[20][0]-self.coord[7][0]) # approx [m/px]
 
     def getCoord(self ,scale = 1.0, offset = [100,800]):
         return scale* self.coord + offset
